@@ -1,2 +1,2 @@
 # livre
-A library management application
+A library management application made using Go and React
