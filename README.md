@@ -1,2 +1,2 @@
 # livre
-A library management application made using Go and React
+A library management application made using FastAPI and React
