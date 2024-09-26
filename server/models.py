@@ -3,6 +3,10 @@ from typing import List, Optional
 from enums import *
 import uuid
 from decimal import Decimal
+from datetime import datetime, timedelta
+import pytz
+
+TIMEZONE = pytz.timezone('Asia/Kolkata')
 
 class Patron(SQLModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
@@ -13,6 +17,8 @@ class Patron(SQLModel, table=True):
     fine: Decimal = Field(default=Decimal('0.00'), nullable=False)
     status: PatronStatusEnum = Field(default=PatronStatusEnum.IN, nullable=False)
     barcode_path: str = Field(nullable=False)
+
+    borrows: List["Borrow"] = Relationship(back_populates="patron")
 
 class Author(SQLModel, table=True):
     id: int = Field(default=None, primary_key=True)
@@ -51,18 +57,32 @@ class Book(SQLModel, table=True):
     isbn: str = Field(min_length=10, max_length=13, primary_key=True)
     title: str = Field(nullable=False)
     
-    genre_code: int = Field(foreign_key="genre.code")
-    publisher_id: int = Field(foreign_key="publisher.id")
+    genre_code: int = Field(foreign_key="genre.code", nullable=False)
+    publisher_id: int = Field(foreign_key="publisher.id", nullable=False)
     qty: int = Field(nullable=False, default=1)
 
     genre: Genre = Relationship(back_populates="books")
     publisher: Publisher = Relationship(back_populates="books")
-    authors: List["BookAuthorLink"] = Relationship(back_populates="book")
-    copies: List[Copy] = Relationship(back_populates="book")
+    authors: List[Write] = Relationship(back_populates="book")
+    copies: List["Copy"] = Relationship(back_populates="book")  
 
 class Copy(SQLModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     isbn: str = Field(foreign_key="book.isbn", nullable=False)
     status: str = Field(nullable=False, default="available")
+    barcode_path: str = Field(nullable=False)
 
     book: Book = Relationship(back_populates="copies")
+
+    borrows: List["Borrow"] = Relationship(back_populates="copy")
+
+class Borrow(SQLModel, table=True):
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    patron_id: uuid.UUID = Field(foreign_key="patron.id", nullable=False)
+    copy_id: uuid.UUID = Field(foreign_key="copy.id", nullable=False)
+    borrow_date: datetime = Field(default_factory=lambda: datetime.now(TIMEZONE), nullable=False)    
+    due_date: datetime = Field(default_factory=lambda: datetime.now(TIMEZONE) + timedelta(days=14), nullable=False)
+    return_date: Optional[datetime] = Field(default=None)
+
+    patron: Patron = Relationship(back_populates="borrows")
+    copy: Copy = Relationship(back_populates="borrows")

@@ -1,4 +1,5 @@
-from sqlmodel import create_engine, SQLModel
+from sqlmodel import create_engine
+from models import SQLModel
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from contextlib import asynccontextmanager
 
@@ -17,5 +18,5 @@ async def init_db():
         await conn.run_sync(SQLModel.metadata.create_all)
 
 async def yield_session():
-    async with AsynSession(engine) as session:
+    async with AsyncSession(engine) as session:
         yield session
