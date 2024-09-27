@@ -27,7 +27,7 @@ async def create_librarian(body: LibrarianBase, db: AsyncSession):
     await db.refresh(librarian) 
     return librarian
 
-async def auth_librarian(body: LibrarianAuthBase, db: AsyncSession):
+async def auth_librarian(body: LibrarianBase, db: AsyncSession):
     result = await db.execute(select(Librarian).where(Librarian.username == body.username))
     librarian_admin = result.scalar_one_or_none()
 
@@ -35,6 +35,14 @@ async def auth_librarian(body: LibrarianAuthBase, db: AsyncSession):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Librarian account not found."
+        )
+
+    # Verify the password
+    if not librarian_admin.verify_password(body.password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
         )
 
     return librarian_admin
