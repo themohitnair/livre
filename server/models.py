@@ -2,9 +2,12 @@ from sqlmodel import Field, Relationship, SQLModel, UniqueConstraint
 from typing import List, Optional
 from enums import *
 import uuid
+from passlib.context import CryptContext
 from decimal import Decimal
 from datetime import datetime, timedelta
 import pytz
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 TIMEZONE = pytz.timezone('Asia/Kolkata')
 
@@ -77,12 +80,26 @@ class Copy(SQLModel, table=True):
     borrows: List["Borrow"] = Relationship(back_populates="copy")
 
 class Borrow(SQLModel, table=True):
-    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    patron_id: uuid.UUID = Field(foreign_key="patron.id", nullable=False)
-    copy_id: uuid.UUID = Field(foreign_key="copy.id", nullable=False)
-    borrow_date: datetime = Field(default_factory=lambda: datetime.now(TIMEZONE), nullable=False)    
-    due_date: datetime = Field(default_factory=lambda: datetime.now(TIMEZONE) + timedelta(days=14), nullable=False)
+    patron_id: uuid.UUID = Field(foreign_key="patron.id", nullable=False, primary_key=True)
+    copy_id: uuid.UUID = Field(foreign_key="copy.id", nullable=False, primary_key=True)
+    borrow_date: datetime = Field(default_factory=lambda: datetime.now(TIMEZONE), nullable=False, primary_key=True)    
+    due_date: datetime = Field(default_factory=lambda: datetime.now(TIMEZONE) + timedelta(days=15), nullable=False)
     return_date: Optional[datetime] = Field(default=None)
 
     patron: Patron = Relationship(back_populates="borrows")
     copy: Copy = Relationship(back_populates="borrows")
+
+    class Config:
+        table_args = (UniqueConstraint('patron_id', 'copy_id', 'borrow_date', name='uq_borrow'),)
+
+class Librarian(SQLModel, table=True):
+    id: int = Field(default=1, primary_key=True)
+    username: str = Field(max_length=50, unique=True, index=True)
+    hashed_password: str
+
+    def verify_password(self, password: str):
+        return pwd_context.verify(password, self.hashed_password)
+
+    @staticmethod
+    def get_password_hash(password: str):
+        return pwd_context.hash(password)

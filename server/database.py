@@ -2,11 +2,15 @@ from sqlmodel import create_engine
 from models import SQLModel
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from contextlib import asynccontextmanager
+import os
+from dotenv import load_dotenv
 
-username = "root"
-password = "mohitnair"
+load_dotenv()
+
+username = os.getenv("DATABASE_USERNAME")
+password = os.getenv("DATABASE_PASSWORD")
 host = "localhost"
-port = 3306
+port = os.getenv("DATABASE_PORT")
 schema_name = "livre"
 
 mysql_url = f"mysql+asyncmy://{username}:{password}@{host}:{port}/{schema_name}"
