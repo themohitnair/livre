@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException, Depends, status
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError, jwt
 from datetime import datetime, timedelta
@@ -8,6 +9,7 @@ from typing import Annotated
 from dotenv import load_dotenv
 from contextlib import asynccontextmanager
 import os
+import secrets
 
 from routers.author import author_router
 from routers.patron import patron_router
@@ -20,9 +22,18 @@ from database import init_db, yield_session
 from schemas import Token, LibrarianBase, LibrarianPasswordChange, LibrarianAuthBase
 from models import Librarian
 
-
 load_dotenv()
-SECRET_KEY = os.getenv("SECRET_KEY")
+
+def get_secret_key():
+    secret_key = os.getenv("SECRET_KEY")
+    if not secret_key:
+        secret_key = secrets.token_hex(32)
+        if "SECRET_KEY=" not in open('.env').read():
+            with open('.env', 'a') as f:
+                f.write(f'\nSECRET_KEY={secret_key}\n')
+    return secret_key
+
+SECRET_KEY = get_secret_key()
 ALGORITHM = os.getenv("ALGORITHM")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES"))
 
@@ -35,6 +46,19 @@ async def lifespan(app: FastAPI):
     yield
 
 app = FastAPI(lifespan=lifespan)
+
+origins = [
+    "http://localhost:3000",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins, 
+    allow_credentials=True,
+    allow_methods=["*"], 
+    allow_headers=["*"],
+)
+
 
 app.include_router(author_router, prefix="/author")
 app.include_router(book_router, prefix="/book")
@@ -82,11 +106,11 @@ async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm,
     access_token = create_access_token(data={"sub": librarian.username})
     return {"access_token": access_token, "token_type": "bearer"}
 
-@app.post("/configure-librarian")
+@app.post("/register")
 async def configure_librarian(body: LibrarianBase, db: AsyncSession = Depends(yield_session)):
     return await create_librarian(body, db)
 
-@app.put("/change-password")
+@app.put("/passwordchange")
 async def change_librarian_password(body: LibrarianPasswordChange, librarian: Annotated[Librarian, Depends(get_current_librarian)], db: AsyncSession = Depends(yield_session)):
     return await change_password(body, db)
 
