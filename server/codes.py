@@ -16,7 +16,7 @@ def generate_barcode(entity, uuid_value=None):
     output_dir = os.path.join(os.getcwd(), f'{entity}_barcodes')
     os.makedirs(output_dir, exist_ok=True)
     
-    filename = f"barcode_{entity}_{uuid_str}.svg"
+    filename = f"barcode_{entity}_{uuid_str}"
     file_path = os.path.join(output_dir, filename)
     
     barcode = Code128(uuid_str, writer=SVGWriter())
@@ -31,5 +31,5 @@ def generate_barcode(entity, uuid_value=None):
     
     return file_path
 
-generated_path = generate_barcode('patron')
-print(f"Barcode saved at: {generated_path}")
+if __name__ == "__main__":
+    print(generate_barcode('patron'))

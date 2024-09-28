@@ -1,7 +1,7 @@
 from models import Librarian
 from sqlmodel import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from schemas import LibrarianBase, LibrarianPasswordChange, LibrarianAuthBase
+from schemas import LibrarianBase, LibrarianPasswordChange
 from fastapi import HTTPException, status
 from passlib.context import CryptContext
 
@@ -37,7 +37,6 @@ async def auth_librarian(body: LibrarianBase, db: AsyncSession):
             detail="Librarian account not found."
         )
 
-    # Verify the password
     if not librarian_admin.verify_password(body.password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -67,3 +66,17 @@ async def change_password(body: LibrarianPasswordChange, db: AsyncSession):
         detail="Incorrect old password",
         headers={"WWW-Authenticate": "Bearer"},
     )
+
+async def delete_librarian(db: AsyncSession):
+    result = await db.execute(select(Librarian))
+    librarian_admin = result.scalar_one_or_none()
+
+    if not librarian_admin:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No librarian account exists to delete."
+        )
+
+    await db.delete(librarian_admin)
+    await db.commit()
+    return {"message": "Librarian account deleted successfully"}

@@ -4,12 +4,17 @@ from enums import *
 import uuid
 from passlib.context import CryptContext
 from decimal import Decimal
+from codes import generate_barcode
 from datetime import datetime, timedelta
 import pytz
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-TIMEZONE = pytz.timezone('Asia/Kolkata')
+TIMEZONE = pytz.timezone(os.getenv("TIMEZONE"))
 
 class Patron(SQLModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
@@ -20,8 +25,17 @@ class Patron(SQLModel, table=True):
     fine: Decimal = Field(default=Decimal('0.00'), nullable=False)
     status: PatronStatusEnum = Field(default=PatronStatusEnum.IN, nullable=False)
     barcode_path: str = Field(nullable=False)
+    is_active: bool = Field(default=True, nullable=False)
 
     borrows: List["Borrow"] = Relationship(back_populates="patron")
+
+    def __init__(self, **data):
+        super().__init__(**data)
+        if not self.barcode_path:
+            self.generate_barcode()
+
+    def generate_barcode(self):
+        self.barcode_path = generate_barcode('patron', self.id)
 
 class Author(SQLModel, table=True):
     id: int = Field(default=None, primary_key=True)

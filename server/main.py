@@ -19,7 +19,7 @@ from routers.copy import copy_router
 from routers.book import book_router
 from crud.librarian import create_librarian, auth_librarian, change_password
 from database import init_db, yield_session
-from schemas import Token, LibrarianBase, LibrarianPasswordChange, LibrarianAuthBase
+from schemas import Token, LibrarianBase, LibrarianPasswordChange
 from models import Librarian
 
 load_dotenv()
@@ -59,7 +59,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
 app.include_router(author_router, prefix="/author")
 app.include_router(book_router, prefix="/book")
 app.include_router(patron_router, prefix="/patron")
@@ -89,30 +88,34 @@ async def get_current_librarian(token: Annotated[str, Depends(oauth2_scheme)], d
     except JWTError:
         raise credentials_exception
 
-    librarian = await auth_librarian(LibrarianAuthBase(username=username), db)
+    librarian = await auth_librarian(LibrarianBase(username=username), db)
     if librarian is None:
         raise credentials_exception
     return librarian
 
 @app.post("/token", response_model=Token)
 async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], db: AsyncSession = Depends(yield_session)):
-    librarian = await auth_librarian(LibrarianBase(username=form_data.username, password=form_data.password), db)
-    if not librarian:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+    try:
+        librarian = await auth_librarian(LibrarianBase(username=form_data.username, password=form_data.password), db)
+    except HTTPException as e:
+        raise HTTPException(status_code=e.status_code, detail=e.detail, headers=e.headers)
+    
     access_token = create_access_token(data={"sub": librarian.username})
     return {"access_token": access_token, "token_type": "bearer"}
 
 @app.post("/register")
 async def configure_librarian(body: LibrarianBase, db: AsyncSession = Depends(yield_session)):
-    return await create_librarian(body, db)
+    try:
+        return await create_librarian(body, db)
+    except HTTPException as e:
+        raise HTTPException(status_code=e.status_code, detail=e.detail)
 
 @app.put("/passwordchange")
 async def change_librarian_password(body: LibrarianPasswordChange, librarian: Annotated[Librarian, Depends(get_current_librarian)], db: AsyncSession = Depends(yield_session)):
-    return await change_password(body, db)
+    try:
+        return await change_password(body, db)
+    except HTTPException as e:
+        raise HTTPException(status_code=e.status_code, detail=e.detail)
 
 @app.get("/")
 async def greet(librarian: Annotated[Librarian, Depends(get_current_librarian)]):

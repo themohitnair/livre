@@ -4,13 +4,10 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
-
-import { Input } from "@/components/ui/input"
-
-import { Button } from "@/components/ui/button"
-
-import { useState } from "react"
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { useState } from "react";
 
 const Register = () => {
   const [username, setUsername] = useState<string>("");
@@ -28,11 +25,13 @@ const Register = () => {
       });
 
       if (!response.ok) {
-        throw new Error("Registration failed!");
+        const errorData = await response.json();
+        throw new Error(errorData.detail || "Registration failed!");
       }
 
-      const data = await response.json();
       setMessage("Registration successful!");
+      setUsername("");
+      setPassword("");
     } catch (error: unknown) {
       if (error instanceof Error) {
         setMessage(error.message);
@@ -42,7 +41,6 @@ const Register = () => {
     }
   };
 
-
   return (    
     <div className="flex justify-center items-center h-screen">
       <Card className="w-3/12">
@@ -50,18 +48,30 @@ const Register = () => {
           <CardTitle>Register</CardTitle>
         </CardHeader>
         <CardContent>
-          <Input placeholder="Username" className="mb-3" value={username} onChange={(e) => {setUsername(e.target.value)}}/>
-          <Input type="password" placeholder="Password" value={password} onChange={(e) => {setPassword(e.target.value)}}/>
+          <Input 
+            placeholder="Username" 
+            className="mb-3" 
+            value={username} 
+            onChange={(e) => setUsername(e.target.value)} 
+          />
+          <Input 
+            type="password" 
+            placeholder="Password" 
+            value={password} 
+            onChange={(e) => setPassword(e.target.value)} 
+          />
           {message && (
             <div className="mt-3 text-center text-red-500">{message}</div>
           )}
         </CardContent>
         <CardFooter className="w-full">
-          <Button variant="default" className="w-full" onClick={handleRegister}>Submit</Button>
+          <Button variant="default" className="w-full" onClick={handleRegister}>
+            Submit
+          </Button>
         </CardFooter>
       </Card>
     </div>
-  )
-}
+  );
+};
 
 export default Register;

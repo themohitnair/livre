@@ -1,14 +1,13 @@
 import {
-    Card,
-    CardContent,
-    CardFooter,
-    CardHeader,
-    CardTitle,
-} from "@/components/ui/card"
-import { Input } from "./components/ui/input";
-import { Button } from "./components/ui/button";
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import { login } from './auth';
 
 const Login = () => {
   const [username, setUsername] = useState<string>("");
@@ -17,10 +16,25 @@ const Login = () => {
 
   const handleLogin = async () => {
     try {
-      const { access_token } = await login(username, password);
+      const response = await fetch("http://localhost:8000/token", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          username,
+          password,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || "Login failed!");
+      }
+
+      const data = await response.json();
       setMessage("Login successful!");
-      // You can store the token in localStorage or state for further API requests
-      localStorage.setItem('access_token', access_token);
+      localStorage.setItem('access_token', data.access_token);
     } catch (error: unknown) {
       if (error instanceof Error) {
         setMessage("Login failed: " + error.message);
@@ -37,29 +51,25 @@ const Login = () => {
           <CardTitle>Login</CardTitle>
         </CardHeader>
         <CardContent>
-          <Input
-            placeholder="Username"
-            className="mb-3"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
+          <Input 
+            placeholder="Username" 
+            className="mb-3" 
+            value={username} 
+            onChange={(e) => setUsername(e.target.value)} 
           />
-          <Input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
+          <Input 
+            type="password" 
+            placeholder="Password" 
+            value={password} 
+            onChange={(e) => setPassword(e.target.value)} 
           />
           {message && (
             <div className="mt-3 text-center text-red-500">{message}</div>
           )}
         </CardContent>
         <CardFooter className="w-full">
-          <Button
-            variant="default"
-            className="w-full"
-            onClick={handleLogin}
-          >
-            Login
+          <Button variant="default" className="w-full" onClick={handleLogin}>
+            Submit
           </Button>
         </CardFooter>
       </Card>
