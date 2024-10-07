@@ -6,7 +6,7 @@ app = FastAPI()
 async def greet():
     return {
         "title": "livre",
-        "subtitle": "Making library management easy"
+        "subtitle": "Library Management made easy"
     }
 
 if __name__ == "__main__":

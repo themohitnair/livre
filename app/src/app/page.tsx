@@ -1,4 +1,4 @@
-import { Card, CardContent } from "@/components/ui/card";
+import { CardContent, Card } from "@/components/ui/card";
 
 export default async function Home() {
   const res = await fetch('http://localhost:8000/');
@@ -7,7 +7,7 @@ export default async function Home() {
 
   return (
     <div className="h-screen w-full flex items-center justify-center">
-      <Card className="pt-7">
+      <Card className="pt-7 font-mono">
         <CardContent>
         <div className="sat flex flex-col items-center justify-center gap-5">
           <div className="wrap flex items-center justify-center gap-5">
